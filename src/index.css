@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+ * Design tokens — aligned to the verified Tipmaster product palette
+ * (tipmaster.net CSS variables, fetched 2026-08-10):
+ *   --c-amber #f59e0b, --c-amberDark #d97706, --c-amberLight #fde68a
+ * Defining them in @theme generates bg, text and border utilities.
+ * ------------------------------------------------------------------------- */
+@theme {
+  --color-brand-amber: #f59e0b;
+  --color-brand-amber-dark: #d97706;
+  --color-brand-amber-light: #fde68a;
+  --color-brand-ink: #1e2336;
+  --color-brand-blue: #3b82f6;
+  --color-brand-green: #10b981;
+  --color-brand-cyan: #00e5ff;
+  --color-brand-red: #ff3d00;
+
+  --animate-bounce-slow: bounce-slow 2.4s ease-in-out infinite;
+  --animate-rise: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bounce-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom utilities the original widget referenced but never defined
+ * (silent no-ops there — fixed here). Tailwind v4 `@utility`. */
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@utility mask-fade-edges {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+}
+
+/* Respect reduced-motion (WCAG 2.3.3). JS side also gates confetti. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+}
