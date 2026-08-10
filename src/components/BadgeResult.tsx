@@ -1,14 +1,13 @@
-import { AlertTriangle, ArrowRight, Check, Share2, ShieldCheck, Sparkles, Zap } from 'lucide-react';
-import type { Badge, BadgeTone, DuelScore, MatchConfig, Score } from '../lib/types';
+import { AlertTriangle, ArrowRight, Check, Share2, ShieldCheck, Zap } from 'lucide-react';
+import type { Badge, BadgeTone, DuelScore, MatchConfig, MatchStatus, Score } from '../lib/types';
 import { tendencyLabel, tendencyOf } from '../lib/badge';
 
 interface BadgeResultProps {
   match: MatchConfig;
   pick: Score;
   badge: Badge;
-  revealed: boolean;
+  status: MatchStatus;
   duel: DuelScore | null;
-  onReveal: () => void;
   shareUrl: string;
   onShare: () => void;
   copied: boolean;
@@ -20,7 +19,6 @@ const TONE: Record<BadgeTone, { icon: typeof ShieldCheck; text: string; bg: stri
   red: { icon: Zap, text: 'text-brand-red', bg: 'bg-brand-red/10', border: 'border-brand-red/20' },
 };
 
-/** Settlement verdict — maps (exact, tend) + badge to a human line. */
 function verdict(badge: Badge, duel: DuelScore, match: MatchConfig): { line: string; tone: 'good' | 'mid' | 'bad' } {
   if (duel.exact && duel.tend) {
     return { line: 'Bullseye — EXACT scoreline + TEND. Maximum duel points.', tone: 'good' };
@@ -37,22 +35,22 @@ function verdict(badge: Badge, duel: DuelScore, match: MatchConfig): { line: str
   return { line: 'No duel points — the result went another way.', tone: 'bad' };
 }
 
-export function BadgeResult({
-  match,
-  pick,
-  badge,
-  revealed,
-  duel,
-  onReveal,
-  shareUrl,
-  onShare,
-  copied,
-}: BadgeResultProps) {
+export function BadgeResult({ match, pick, badge, status, duel, shareUrl, onShare, copied }: BadgeResultProps) {
   const tone = TONE[badge.tone];
   const Icon = tone.icon;
   const pickTend = tendencyOf(pick);
+  const settled = status === 'ended' && duel && match.realResult;
+  const v = settled ? verdict(badge, duel, match) : null;
 
-  const v = duel && revealed ? verdict(badge, duel, match) : null;
+  const banked = duel
+    ? duel.exact && duel.tend
+      ? 'You banked +EXACT and +TEND in this duel.'
+      : duel.tend
+        ? 'You banked +TEND in this duel (scoreline off).'
+        : duel.exact
+          ? 'You banked +EXACT in this duel.'
+          : 'No duel points — neither EXACT nor TEND.'
+    : 'In a Tipmaster duel this banks +EXACT (exact scoreline) and +TEND (tendency) if the real result matches.';
 
   return (
     <div className="flex w-full justify-center">
@@ -72,30 +70,15 @@ export function BadgeResult({
                 {match.home.code} {pick.home}–{pick.away} {match.away.code}
               </span>
             </p>
-            <p className="mb-1">Tendency: <span className="font-semibold">{tendencyLabel(match, pickTend)}</span></p>
-            <p className="text-slate-500">
-              In a Tipmaster duel this banks{' '}
-              <strong className="text-slate-700">+EXACT</strong> (exact scoreline) and{' '}
-              <strong className="text-slate-700">+TEND</strong> (tendency) if the real result matches.
+            <p className="mb-1">
+              Tendency: <span className="font-semibold">{tendencyLabel(match, pickTend)}</span>
             </p>
+            <p className="text-slate-500">{banked}</p>
           </div>
 
-          {/* Settle live */}
-          {match.realResult && !revealed && (
-            <button
-              type="button"
-              onClick={onReveal}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-            >
-              <Sparkles size={15} aria-hidden="true" /> Reveal real result — settle the duel
-            </button>
-          )}
-
-          {revealed && duel && match.realResult && (
-            <div
-              className="mb-4 w-full rounded-md border p-3 text-left text-[13px]"
-              aria-live="polite"
-            >
+          {/* Settled result — shown only once the match has ended */}
+          {settled && match.realResult && (
+            <div className="mb-4 w-full rounded-md border border-slate-200 bg-white p-3 text-left text-[13px]" aria-live="polite">
               <p className="mb-1 font-semibold text-slate-700">
                 Real result:{' '}
                 <span className="font-bold text-slate-900">
@@ -114,30 +97,26 @@ export function BadgeResult({
               >
                 {v?.line}
               </p>
-              <p className="mt-1 text-slate-500">
-                Duel: {duel.exact ? '+EXACT ' : ''}{duel.tend ? '+TEND' : !duel.exact && !duel.tend ? '0 pts' : ''}
-              </p>
             </div>
           )}
 
-          {/* Share / Challenge Friends — deep link encodes the pick */}
+          {/* Share — deep link encodes the pick so a friend opens the same tip */}
           <button
             type="button"
             onClick={onShare}
             className="group flex w-full items-center justify-between rounded-[10px] bg-slate-900 py-[12px] px-4 font-semibold text-white shadow-md transition-colors hover:bg-slate-800"
           >
             <span className="flex items-center gap-2 text-[15px]">
-              {copied ? <Check size={18} aria-hidden="true" /> : <Share2 size={18} className="text-slate-400 group-hover:text-white" aria-hidden="true" />}
+              {copied ? (
+                <Check size={18} aria-hidden="true" />
+              ) : (
+                <Share2 size={18} className="text-slate-400 group-hover:text-white" aria-hidden="true" />
+              )}
               {copied ? 'Link copied!' : 'Challenge a friend'}
             </span>
             <ArrowRight size={18} className="text-slate-400 transition-transform group-hover:translate-x-1" aria-hidden="true" />
           </button>
-          <input
-            type="hidden"
-            aria-label="Shareable link"
-            value={shareUrl}
-            readOnly
-          />
+          <p className="mt-2 max-w-md text-[11px] text-slate-400">{shareUrl}</p>
         </div>
       </div>
     </div>
